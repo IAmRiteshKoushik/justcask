@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 2: when a checksum means stop</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0002 · 15 minutes</p>
+  <h1>When a checksum means stop</h1>
+  <p class="lede">A checksum does not prevent a crash. It lets recovery distinguish bytes it can trust from bytes it cannot.</p>
+
+  <h2>Two failures that look similar</h2>
+  <div class="card">
+    <p><strong>Crash tail.</strong> The decoder reads a valid header near EOF, but the file ends before the declared key and value bytes arrive. This is expected after an interrupted append. The record was never valid, so it must not affect the keydir.</p>
+    <p><strong>Corrupt complete record.</strong> The decoder can read every byte the header declares, but the checksum does not match. The database cannot know which of those bytes are trustworthy. Treat this as corruption, surface an error, and do not invent a policy that silently drops an arbitrary middle record.</p>
+  </div>
+
+  <p>The checksum should cover the bytes whose integrity matters, normally the header fields after the checksum plus the key and value. Excluding the checksum field itself avoids a circular calculation. <a href="https://pkg.go.dev/hash/crc32">Go's `hash/crc32` package</a> is enough for accidental corruption detection. It is not a security feature.</p>
+
+  <h2>Trace recovery by hand</h2>
+  <p>Assume a data file contains records A, B, and C in that order.</p>
+  <ol>
+    <li>A is complete and its checksum matches.</li>
+    <li>B has a complete header but EOF arrives before its declared value ends.</li>
+    <li>C cannot physically exist after B in an append-only file, because B reaches EOF.</li>
+  </ol>
+  <p>Recovery admits A, ignores B as an uncommitted tail, and finishes. Now replace B with a complete record whose checksum fails. Recovery should return an error rather than continue.</p>
+
+  <h2>Your format decision</h2>
+  <p>Send a compact proposal. Be exact, but do not write Go yet.</p>
+  <ol>
+    <li>Pick fixed widths for checksum, timestamp, key length, and value length. Name the byte order.</li>
+    <li>State the exact byte range your checksum covers.</li>
+    <li>Write the two recovery outcomes: short read at physical EOF, and checksum mismatch after a complete read.</li>
+  </ol>
+
+  <p class="small">Primary reading: pages 2–3 of the <a href="https://riak.com/assets/bitcask-intro.pdf">Bitcask paper</a>. Reference: <a href="../reference/0001-bitcask-glossary.html">Bitcask glossary</a>. Ask a follow-up question if the distinction between durability and integrity feels fuzzy. It is worth getting right now.</p>
+</main>
+</body>
+</html>

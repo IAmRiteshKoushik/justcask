@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 1: the record is the contract</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0001 · 15 minutes</p>
+  <h1>The record is the contract</h1>
+  <p class="lede">Your CLI will recover only what it can unambiguously parse. Before writing a database API, decide what one durable operation looks like as bytes.</p>
+
+  <h2>The one idea</h2>
+  <p>Bitcask writes each new value at the end of a data file. The keydir keeps the location of the newest record for each key, so a read finds the record with one indexed disk access. Old versions remain until compaction.</p>
+  <pre>[ checksum | timestamp | key length | value length | key bytes | value bytes ]</pre>
+  <p>This is the original paper's shape, not a command to copy it blindly. A record needs enough information to find its boundary, identify its key, recover order, and reject damaged bytes. A delete can use the same envelope with an explicit operation field or a documented sentinel. We will choose deliberately.</p>
+
+  <div class="card">
+    <p><strong>Primary reading.</strong> Read pages 2–3 of <a href="https://riak.com/assets/bitcask-intro.pdf">the Bitcask paper</a>. Focus on the data files and keydir sections. Skip merging for now.</p>
+  </div>
+
+  <h2>Retrieval check</h2>
+  <p>Answer before looking back. The check runs entirely in your browser and does not save your response.</p>
+  <label for="answer">Why does a Bitcask keydir store a location rather than the value itself?</label>
+  <textarea id="answer" placeholder="Write two or three sentences."></textarea>
+  <button id="check" type="button">Check my answer</button>
+  <p class="feedback" id="feedback" aria-live="polite"></p>
+
+  <h2>Your first design note</h2>
+  <p>Do not write Go yet. Send me a compact answer to these questions:</p>
+  <ol>
+    <li>What exact fields would your first record contain, in byte order?</li>
+    <li>How will a decoder know where the record ends?</li>
+    <li>What must happen if the final record ends halfway through because the process dies?</li>
+  </ol>
+  <p>There is no single perfect format. I will review your proposal against recovery, corruption detection, and future compaction, then we will write the codec tests first.</p>
+
+  <p class="small">Reference: <a href="../reference/0001-bitcask-glossary.html">Bitcask glossary</a>. Ask follow-up questions at any point, especially when a word feels hand-wavy. That is usually where the real systems work begins.</p>
+</main>
+<script>
+  const answer = document.querySelector('#answer');
+  const feedback = document.querySelector('#feedback');
+  document.querySelector('#check').addEventListener('click', () => {
+    const text = answer.value.toLowerCase();
+    const mentionsLocation = /offset|position|location|file|pointer/.test(text);
+    const mentionsMemory = /memory|ram/.test(text);
+    const mentionsValue = /value/.test(text);
+    if (mentionsLocation && mentionsMemory && mentionsValue) {
+      feedback.textContent = 'Good. The index stays small enough to reside in memory while the value remains in the data file. Next, say what makes the referenced bytes safe to read after restart.';
+    } else {
+      feedback.textContent = 'Try again. Include the record location, the RAM cost of storing values in the index, and where the value actually remains.';
+    }
+  });
+</script>
+</body>
+</html>

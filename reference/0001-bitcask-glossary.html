@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bitcask glossary</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask reference 0001</p>
+  <h1>Bitcask glossary</h1>
+  <dl>
+    <dt><strong>Append-only log</strong></dt>
+    <dd>A file where a write adds a new record at the end. Updating a key does not overwrite its older record.</dd>
+    <dt><strong>Record</strong></dt>
+    <dd>One self-describing sequence of bytes representing a put or delete. Its format is a compatibility contract.</dd>
+    <dt><strong>Keydir</strong></dt>
+    <dd>An in-memory map from a live key to the location of its newest record, typically file ID, offset, and value size.</dd>
+    <dt><strong>Active file</strong></dt>
+    <dd>The one data file receiving appends. Older files become immutable when the active file rotates.</dd>
+    <dt><strong>Tombstone</strong></dt>
+    <dd>A record that means a key was deleted. It must survive until compaction can safely discard it with older versions.</dd>
+    <dt><strong>Recovery</strong></dt>
+    <dd>Rebuilding correct in-memory state when opening the directory by scanning valid records in physical order.</dd>
+    <dt><strong>Crash tail</strong></dt>
+    <dd>An incomplete or corrupt final record caused by a process or machine stopping during an append.</dd>
+    <dt><strong>Compaction or merge</strong></dt>
+    <dd>Rewriting only the latest live records into new files, then retiring stale files safely.</dd>
+  </dl>
+  <p class="small">Definitions adapted from the <a href="https://riak.com/assets/bitcask-intro.pdf">Bitcask paper</a>. Return to <a href="../lessons/0001-the-record-is-the-contract.html">lesson 0001</a>.</p>
+</main>
+</body>
+</html>
