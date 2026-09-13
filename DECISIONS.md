@@ -1,0 +1,29 @@
+# Format decisions
+
+This file is the source of truth for choices that change bytes written by Justcask. A later implementation must preserve existing decisions or introduce an explicit format migration.
+
+## Record format v1
+
+Each put record is encoded in this order:
+
+```text
+crc32 | timestamp | key length | value length | key | value
+```
+
+- All fixed-width integer fields use big-endian encoding.
+- `crc32` occupies 4 bytes and uses CRC-32.
+- `timestamp` occupies 8 bytes. Its unit and signedness are intentionally pending before the encoder is written.
+- `key length` and `value length` are unsigned 4-byte fields.
+- The checksum covers `timestamp | key length | value length | key | value`, never the checksum field itself.
+- The fixed header occupies 20 bytes.
+
+## Recovery v1
+
+- A short read at the physical EOF is a crash tail. The partial record never enters the keydir.
+- A checksum mismatch after a complete record read is corruption. Opening returns an error with the affected file and byte offset. It does not discard, truncate, compact, or otherwise modify data.
+
+## Deliberately deferred
+
+- Timestamp unit and signedness.
+- Maximum accepted key and value lengths, which must be lower than the on-disk `uint32` ceiling.
+- The explicit operation encoding for tombstones. Empty values will remain valid values.

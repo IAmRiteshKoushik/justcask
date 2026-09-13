@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 4: test the bytes, not the idea</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0004 · 20 minutes</p>
+  <h1>Test the bytes, not the idea</h1>
+  <p class="lede">A round-trip test can pass when encoder and decoder share the same mistake. A storage format earns trust when a test asserts the exact bytes on disk.</p>
+
+  <h2>The blind spot in round trips</h2>
+  <p>Suppose your encoder accidentally writes the value length in little-endian and your decoder accidentally reads it in little-endian. <code>decode(encode(record))</code> passes, but the database has violated its big-endian file contract. An exact-byte test catches it.</p>
+  <pre>encode(record) -> exact, precomputed byte slice
+decode(exact byte slice) -> expected record
+decode(truncated byte slice) -> incomplete-record result
+decode(byte slice with one flipped protected byte) -> checksum error</pre>
+
+  <h2>Pick values that expose mistakes</h2>
+  <p>Do not choose all-zero numbers. They hide byte order. A good fixed vector uses a timestamp and lengths whose bytes differ, a short ASCII key, and a short ASCII value. You will calculate its expected bytes once, write them as a literal hexadecimal test vector, and never calculate the expected result by calling the production encoder.</p>
+
+  <div class="card">
+    <p><strong>Decoder rule.</strong> Before allocating the declared key or value buffers, reject lengths that exceed your configured maximum or cannot fit in a safe allocation. Disk bytes are input, not a promise.</p>
+  </div>
+
+  <h2>Your test plan</h2>
+  <p>Before writing code, reply with:</p>
+  <ol>
+    <li>The timestamp representation you choose: signed or unsigned, and its unit.</li>
+    <li>A key and value for one deterministic exact-byte test. Pick a non-zero timestamp that makes endianness visible.</li>
+    <li>Three decoder test cases, each with the input condition and expected outcome.</li>
+  </ol>
+  <p>After you make these choices, you will create the codec package, test file, and only the first failing test. I will review the package boundary and test names before you implement the encoder.</p>
+
+  <p class="small">Read <a href="../DECISIONS.md">the current format decisions</a>. The Go references for this stage are <a href="https://pkg.go.dev/encoding/binary">`encoding/binary`</a>, <a href="https://pkg.go.dev/hash/crc32">`hash/crc32`</a>, and <a href="https://pkg.go.dev/testing">`testing`</a>.</p>
+</main>
+</body>
+</html>

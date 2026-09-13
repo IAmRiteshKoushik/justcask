@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 3: freeze the v1 record contract</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0003 · 15 minutes</p>
+  <h1>Freeze the v1 record contract</h1>
+  <p class="lede">Once records reach disk, their layout is an API. Give every field a width, a byte order, and a job before writing the encoder.</p>
+
+  <h2>Make implicit choices explicit</h2>
+  <p>A four-byte unsigned length permits one field up to 4 GiB. That is far beyond a sensible CLI value limit, but it is still a format limit that the decoder must enforce. A four-byte Unix-seconds timestamp has a 2106 boundary. Use an eight-byte signed or unsigned timestamp if you keep timestamps in v1.</p>
+  <p>Pick <strong>big-endian</strong> or <strong>little-endian</strong>. Either is valid when every encoder and decoder agrees. Big-endian is conventional in on-disk and network specifications because the byte sequence preserves numeric order. Little-endian matches common CPUs. The durable part of this choice is recording it and testing exact bytes.</p>
+  <pre>checksum u32 | timestamp u64 | key length u32 | value length u32 | key | value
+      4 B     |      8 B      |      4 B       |       4 B        | variable</pre>
+  <p>This layout has a 20-byte fixed header. The checksum covers every following header field plus key and value, but never the checksum's own four bytes.</p>
+
+  <h2>Corruption is not a deletion request</h2>
+  <p>On a complete record with a checksum mismatch, opening the database should return an error with the segment filename and byte offset. It should not truncate, compact, or delete anything. The only automatic tail case is a short read at physical EOF, where no later bytes exist and the partial record never enters the keydir.</p>
+
+  <div class="card">
+    <p><strong>Design pressure.</strong> Why not truncate after any checksum failure? Because the failure may occur in the middle of a file. Truncating there could discard intact later records and turn detectable corruption into silent data loss.</p>
+  </div>
+
+  <h2>Commit a proposal in words</h2>
+  <p>Reply with this exact mini-spec, filling the blanks yourself:</p>
+  <pre>Byte order: ______
+Timestamp: ______
+Lengths: ______
+Checksum algorithm: ______
+Checksum covers: ______
+Short read at EOF: ______
+Checksum mismatch after complete read: ______</pre>
+  <p>After you commit to it, I will help you turn it into <code>DECISIONS.md</code>, and you will write the first exact-byte tests. We will add an explicit operation byte for tombstones before we implement deletion, rather than making an empty value ambiguous.</p>
+
+  <p class="small">Primary sources: the <a href="https://riak.com/assets/bitcask-intro.pdf">Bitcask paper</a> and Go's <a href="https://pkg.go.dev/encoding/binary">`encoding/binary` documentation</a>. Return to the <a href="0002-when-a-checksum-means-stop.html">previous lesson</a> if the EOF distinction is still not automatic.</p>
+</main>
+</body>
+</html>
