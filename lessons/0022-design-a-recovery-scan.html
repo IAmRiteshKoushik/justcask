@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 22: design a recovery scan</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0022 · 20 minutes</p>
+  <h1>Design a recovery scan</h1>
+  <p class="lede">A restart has no in-memory keydir. It must walk the data file from byte zero, recover complete records, and stop only when the file ends in a plausible crash tail.</p>
+
+  <h2>The scanner's loop</h2>
+  <pre><code>offset = 0
+read fixed header at offset
+learn the record's declared full length
+read exactly that many bytes
+decode and validate checksum
+publish recovered location
+advance offset by the full length</code></pre>
+  <p>The scanner cannot call the current <code>record.Decode</code> on the whole remaining file. <code>Decode</code> accepts exactly one record. Recovery must first discover the next record's boundary from its header.</p>
+
+  <h2>Classify the end of a file</h2>
+  <table>
+    <thead><tr><th>Observed bytes at the current offset</th><th>Recovery result</th></tr></thead>
+    <tbody>
+      <tr><td>No bytes at all</td><td>Clean EOF. Finish successfully.</td></tr>
+      <tr><td>Some, but fewer than the 20-byte header</td><td>Crash tail. Ignore it and finish successfully.</td></tr>
+      <tr><td>Full header, but fewer bytes than its declared record length</td><td>Crash tail. Ignore it and finish successfully.</td></tr>
+      <tr><td>Full declared record, checksum mismatch</td><td>Corruption. Return an error with the file and offset.</td></tr>
+      <tr><td>Full header with a key or value length beyond the configured limits</td><td>Corruption. Return an error. Never allocate from untrusted lengths.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>One design task before code</h2>
+  <p>Write down the smallest record-package API that lets the scanner read a header and obtain the full record length safely. It must not expose mutable format constants merely to make the scanner compile.</p>
+  <p>Then name the first recovery test:</p>
+  <pre><code>two complete records + every possible truncated prefix of a third record
+→ recover the first two locations
+→ return no error</code></pre>
+
+  <h2>Retrieval check</h2>
+  <p>Why is a checksum mismatch in a complete record corruption, while an incomplete record at physical EOF is tolerated? Answer before designing the API.</p>
+
+  <p>Primary sources: <a href="https://pkg.go.dev/io#ReadFull">Go's <code>io.ReadFull</code> documentation</a> and <a href="https://pkg.go.dev/os#File.ReadAt">Go's <code>os.File.ReadAt</code> documentation</a>.</p>
+  <p class="small">Ask for a review of your API sketch before you write the scanner. A good recovery boundary is worth more than a fast first implementation.</p>
+</main>
+</body>
+</html>

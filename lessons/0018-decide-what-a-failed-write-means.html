@@ -34,7 +34,8 @@
     <li>State the new invariant in one sentence. Include what a later <code>Append</code> returns after a prior failed write.</li>
     <li>List the first test you would write. For the poison policy, it should force one write failure, call <code>Append</code> again, and prove the fake received no second <code>Write</code> call.</li>
   </ol>
-  <p class="small">Do not add repair logic yet. The choice comes first. Bring back your one-sentence invariant and test name, then implement only the chosen policy.</p>
+  <p>Primary source: <a href="https://pkg.go.dev/os#File">Go's <code>os.File</code> documentation</a>. Read the contracts for <code>Write</code> and <code>Truncate</code>. They explain why repair adds another operation that can fail.</p>
+  <p class="small">Do not add repair logic yet. The choice comes first. Bring back your one-sentence invariant and test name, then implement only the chosen policy. Ask if any part feels unclear.</p>
 </main>
 </body>
 </html>

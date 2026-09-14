@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 20: treat every write error as ambiguous</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0020 · 10 minutes</p>
+  <h1>Treat every write error as ambiguous</h1>
+  <p class="lede">Your poison policy protects a file whose tail might contain incomplete bytes. The trigger is any non-nil write error, not one named error value.</p>
+
+  <h2>The tempting but incomplete rule</h2>
+  <pre><code>if errors.Is(err, io.ErrShortWrite) {
+    poison the file
+}</code></pre>
+  <p>This handles the fake used in your first test. It does not match the decision in <code>DECISIONS.md</code>, which says a data-file write failure poisons the file.</p>
+
+  <h2>Why error identity is the wrong classifier</h2>
+  <p><code>io.ErrShortWrite</code> tells you one specific thing: the writer accepted fewer bytes than requested. A disk write may return a different error after accepting zero bytes, some bytes, or an amount the caller cannot safely rely on. The caller does not need to diagnose the operating-system cause. It only needs a safe rule for the active file.</p>
+  <p>For v1, that rule is conservative and simple:</p>
+  <pre><code>non-nil error from Write → poison the DataFile → return zero Location</code></pre>
+
+  <h2>Your patch</h2>
+  <ol>
+    <li>In the existing <code>Write</code>-error branch, make poisoning unconditional.</li>
+    <li>Keep wrapping and returning the original write error. The first failed append must still support <code>errors.Is</code> for its cause.</li>
+    <li>Rename the poison sentinel so its meaning is clear at a call site. A name that names the data file and its poisoned state is better than a generic “poison error.”</li>
+    <li>Change the test fake to return a new sentinel error that is not <code>io.ErrShortWrite</code>. The second append must still return the poison error and leave <code>writeCalls</code> at one.</li>
+  </ol>
+
+  <h2>Retrieval check</h2>
+  <p>Why is it correct to preserve the first error but return a different poison error on the second call? Answer before you run the test.</p>
+
+  <p>Primary source: <a href="https://pkg.go.dev/io#Writer">Go's <code>io.Writer</code> contract</a>. It defines the special short-write case, but it does not make other write errors safe to ignore.</p>
+  <p class="small">Run <code>mise exec -- go test ./internal/datafile</code> after the patch. Ask for a review when it is green.</p>
+</main>
+</body>
+</html>

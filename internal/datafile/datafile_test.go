@@ -118,3 +118,49 @@ func TestAppendReturnsZeroLocationWhenWriteIsShort(t *testing.T) {
 		t.Fatalf("Write() calls = %d, want 1", handle.writeCalls)
 	}
 }
+
+func TestAppendRefusesLaterWritesAfterWriteFailure(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "fixture")
+	if err := os.WriteFile(path, []byte("existing"), 0o600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("Stat() error = %v", err)
+	}
+
+	first := []byte("first record")
+	writeErr := errors.New("injected write failure")
+	handle := &mockFile{
+		info:     info,
+		writeN:   len(first) - 1,
+		writeErr: writeErr,
+	}
+	file := &DataFile{
+		FileID: 7,
+		file:   handle,
+	}
+
+	firstLocation, err := file.Append(first)
+	if firstLocation != (Location{}) {
+		t.Fatalf("first Append() location = %+v, want zero Location", firstLocation)
+	}
+	if !errors.Is(err, writeErr) {
+		t.Fatalf("first Append() error = %v, want errors.Is(err, writeErr)", err)
+	}
+
+	secondLocation, err := file.Append([]byte("must not be written"))
+	if secondLocation != (Location{}) {
+		t.Fatalf("second Append() location = %+v, want zero Location", secondLocation)
+	}
+	if !errors.Is(err, ErrPoisonError) {
+		t.Fatalf(
+			"second Append() error = %v, want errors.Is(err, ErrPoisonError)",
+			err,
+		)
+	}
+	if handle.writeCalls != 1 {
+		t.Fatalf("Write() calls = %d, want 1", handle.writeCalls)
+	}
+}

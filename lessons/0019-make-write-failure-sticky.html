@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 19: make write failure sticky</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0019 · 15 minutes</p>
+  <h1>Make write failure sticky</h1>
+  <p class="lede">Your failing test says a data file must remember that a write may have left an unknown tail. Now add only the state needed to enforce that rule.</p>
+
+  <h2>Trace the two calls</h2>
+  <pre><code>Append(first)  → Stat → Write → io.ErrShortWrite → mark poisoned → return zero Location
+Append(second) → see poisoned → return zero Location and poison error → do not call Stat or Write</code></pre>
+  <p>The second call must stop before it touches the underlying file. That is stronger than merely returning an error after another failed write.</p>
+
+  <h2>Implementation constraints</h2>
+  <ol>
+    <li>Add one private boolean state to <code>DataFile</code>. Its zero value must mean healthy.</li>
+    <li>Add one package error that callers and tests can check with <code>errors.Is</code>.</li>
+    <li>At the first line of <code>Append</code>, reject a poisoned file with that error and a zero <code>Location</code>.</li>
+    <li>Set the state only when <code>Write</code> returns an error. A failed <code>Stat</code> did not write bytes, so it does not poison the file.</li>
+    <li>Keep the existing wrapped write error for the first failed append. It still needs to preserve <code>io.ErrShortWrite</code>.</li>
+  </ol>
+
+  <h2>Strengthen the test after it turns green</h2>
+  <p>Once you name the poison error, change the second-call assertion from “non-nil” to <code>errors.Is(err, yourPoisonError)</code>. Keep the <code>writeCalls == 1</code> assertion. The pair proves the public result and the lack of I/O.</p>
+
+  <h2>Stop point</h2>
+  <p>Run <code>mise exec -- go test ./internal/datafile</code>. Then explain why a <code>Stat</code> failure remains retryable but a <code>Write</code> failure does not. That distinction is the whole policy.</p>
+
+  <p>Primary source: <a href="https://pkg.go.dev/os#File.Write">Go's <code>os.File.Write</code> documentation</a>. It defines the write result your code must treat as dangerous.</p>
+  <p class="small">Ask if you want a review of your smallest patch or help interpreting a failing test.</p>
+</main>
+</body>
+</html>

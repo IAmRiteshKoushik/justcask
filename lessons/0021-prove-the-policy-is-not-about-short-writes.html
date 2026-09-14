@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 21: prove the policy is not about short writes</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0021 · 10 minutes</p>
+  <h1>Prove the policy is not about short writes</h1>
+  <p class="lede">The code now poisons a data file for every write error. Make the test prove that the rule is about uncertain file state, not the special name <code>io.ErrShortWrite</code>.</p>
+
+  <h2>Change one test input</h2>
+  <p>In <code>TestAppendRefusesLaterWritesAfterWriteFailure</code>, replace the first write's <code>io.ErrShortWrite</code> with a new sentinel error local to the test, such as an injected I/O failure. Keep the partial byte count if you want, but the test's point is the error identity.</p>
+
+  <h2>What the test must prove</h2>
+  <table>
+    <thead><tr><th>Call</th><th>Required result</th></tr></thead>
+    <tbody>
+      <tr><td>First <code>Append</code></td><td>Returns the zero <code>Location</code> and preserves the injected write error for <code>errors.Is</code>.</td></tr>
+      <tr><td>Second <code>Append</code></td><td>Returns the zero <code>Location</code>, matches the poisoned-data-file error, and causes no second <code>Write</code> call.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Name the caller-visible state</h2>
+  <p>Rename the poison sentinel to say what happened to what. A reader at a call site should not need to open its declaration to learn that the active data file is poisoned.</p>
+
+  <h2>Retrieval check</h2>
+  <p>Why does the second append return the poison error instead of repeating the first injected write error? Answer in one sentence, then run <code>mise exec -- go test ./internal/datafile</code>.</p>
+
+  <p>Primary source: <a href="https://pkg.go.dev/io#Writer">Go's <code>io.Writer</code> contract</a>. It gives <code>io.ErrShortWrite</code> a specific meaning. Your active-file policy deliberately covers more than that case.</p>
+  <p class="small">When the test passes, ask for a review. The next stage will start recovery scanning from the record decoder you already built.</p>
+</main>
+</body>
+</html>

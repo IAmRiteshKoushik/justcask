@@ -11,6 +11,10 @@ type Location struct {
 	Size   uint32 // An encoded record is a little more than 4 KB + 16MB
 }
 
+// an interface that comes in handy when you want to swap out *os.File during
+// testing with a mock such that failure pathways can be tested as it is
+// close to impossible to cause actual disk failures to see the error branches,
+// but that does not mean that the code should be untested
 type dataFileHandle interface {
 	Stat() (os.FileInfo, error)
 	Write([]byte) (int, error)
@@ -18,8 +22,9 @@ type dataFileHandle interface {
 }
 
 type DataFile struct {
-	FileID uint32
-	file   dataFileHandle // os.File implements the custom interface
+	FileID   uint32
+	file     dataFileHandle // os.File implements the custom interface
+	poisoned bool
 }
 
 func Open(path string, fileID uint32) (*DataFile, error) {
@@ -34,13 +39,18 @@ func Open(path string, fileID uint32) (*DataFile, error) {
 	}
 
 	return &DataFile{
-		FileID: fileID,
-		file:   f,
+		FileID:   fileID,
+		file:     f,
+		poisoned: false,
 	}, nil
 }
 
 func (f *DataFile) Append(data []byte) (Location, error) {
 	var loc Location
+
+	if f.poisoned {
+		return loc, ErrPoisonError
+	}
 
 	info, err := f.file.Stat()
 	if err != nil {
@@ -50,6 +60,7 @@ func (f *DataFile) Append(data []byte) (Location, error) {
 	fsize := info.Size() // calculate the starting offset for the record
 	lenBytesWritten, err := f.file.Write(data)
 	if err != nil {
+		f.poisoned = true
 		return loc, fmt.Errorf("Append(file.Write) errored: %w", err)
 	}
 
