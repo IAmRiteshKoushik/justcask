@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 16: understand short writes</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0016 · 20 minutes</p>
+  <h1>Understand short writes</h1>
+  <p class="lede">A short write means fewer bytes reached the file than you requested. That is not a successful append, even when some bytes did reach the operating system.</p>
+
+  <h2>What the Go contracts already guarantee</h2>
+  <p><code>os.File.Write</code> returns a non-nil error when it writes fewer bytes than requested. The general <code>io.Writer</code> contract says the same thing. Therefore, while <code>DataFile</code> directly holds an <code>*os.File</code>, its existing <code>err != nil</code> check rejects every valid short write.</p>
+  <p>Do not add a second branch for <code>n != len(data)</code> yet. It would be unreachable for a correctly implemented <code>*os.File</code>.</p>
+
+  <h2>What <code>io.ErrShortWrite</code> means</h2>
+  <p><code>io.ErrShortWrite</code> represents a broken writer that reports fewer bytes but no error. It is useful as a defensive category when consuming an unknown writer. It is not the normal result you need to manufacture around <code>os.File.Write</code>.</p>
+
+  <h2>Two review fixes</h2>
+  <ul>
+    <li>When adding context to a real OS error from <code>Stat</code> or <code>Write</code>, wrap it so its identity remains available to callers.</li>
+    <li>State that the current offset calculation assumes one writer per data file. Concurrent appends arrive later with an explicit synchronization design.</li>
+  </ul>
+
+  <h2>Your design answer</h2>
+  <p>Before the next lesson, answer in one or two sentences:</p>
+  <ol>
+    <li>Why does the existing <code>err != nil</code> path already reject a valid <code>*os.File</code> short write?</li>
+    <li>Why is a location still unsafe when a write reports both partial progress and an error?</li>
+  </ol>
+  <p class="small">The next lesson adds a narrow file interface so you can simulate real failure returns in a focused test. You will make the production refactor; I will review it.</p>
+</main>
+</body>
+</html>

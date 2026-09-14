@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 15: write the first append contract</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0015 · 20 minutes</p>
+  <h1>Write the first append contract</h1>
+  <p class="lede">A data file does not know keys. It accepts opaque encoded bytes, writes them once at the end of one open file, and reports the range they now occupy.</p>
+
+  <h2>Keep the package narrow</h2>
+  <p>Create <code>internal/datafile</code>. Its first production responsibilities are:</p>
+  <ol>
+    <li>Open one writable data file for a supplied path and file ID.</li>
+    <li>Append one supplied byte slice.</li>
+    <li>Return the file ID, pre-write offset, and number of bytes written only after a full successful write.</li>
+    <li>Close the underlying file.</li>
+  </ol>
+  <p>It should not import the record package, decode bytes, update a keydir, rotate files, or call sync yet.</p>
+
+  <h2>The first test contract</h2>
+  <p>Use <code>t.TempDir()</code> to create an isolated file. Pick file ID 7. Append two distinct opaque byte slices, for example a three-byte first slice and a two-byte second slice.</p>
+  <pre>append first bytes  → location { file ID: 7, offset: 0, size: 3 }
+append second bytes → location { file ID: 7, offset: 3, size: 2 }
+read file           → first bytes followed exactly by second bytes</pre>
+  <p>The actual byte values do not matter. Their distinction does. A generic data-file test proves this layer appends bytes, while a later store integration test will prove it appends encoded records.</p>
+
+  <h2>Implementation constraints to hold in mind</h2>
+  <ul>
+    <li>Capture the offset before the write, not after it.</li>
+    <li>A write that returns fewer bytes than supplied is an error. It must return no successful location.</li>
+    <li>The size in the location is the full byte-slice length, not a value length.</li>
+  </ul>
+
+  <h2>Your task</h2>
+  <ol>
+    <li>Create the <code>internal/datafile</code> directory and empty production and test files.</li>
+    <li>Before writing production code, tell me the three operations you intend to expose, in plain English.</li>
+    <li>Ask for the test scaffold when you want it. I will provide that mechanical part, but not the production implementation.</li>
+  </ol>
+</main>
+</body>
+</html>

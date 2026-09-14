@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 14: prove that a file appends</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0014 · 20 minutes</p>
+  <h1>Prove that a file appends</h1>
+  <p class="lede">The first data-file test has one job: prove that successive writes occupy successive physical ranges and that the returned locations tell the truth.</p>
+
+  <h2>Location types</h2>
+  <p>Use a file ID, an offset, and a size. Pick concrete Go types before implementation:</p>
+  <table>
+    <thead><tr><th>Field</th><th>Recommended type</th><th>Reason</th></tr></thead>
+    <tbody>
+      <tr><td>File ID</td><td><code>uint32</code></td><td>A non-negative segment identity with ample room for rotations.</td></tr>
+      <tr><td>Offset</td><td><code>int64</code></td><td>Go file APIs use byte offsets as <code>int64</code>. Negative offsets remain invalid by invariant.</td></tr>
+      <tr><td>Size</td><td><code>uint32</code></td><td>One encoded record is bounded by the 4 KiB key and 16 MiB value limits.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>The first append proof</h2>
+  <p>Use a temporary directory and one new data file with a chosen file ID, such as 7. Append the valid 24-byte v1 fixture twice. The test should observe:</p>
+  <pre>first location:   file ID 7, offset 0,  size 24
+second location:  file ID 7, offset 24, size 24
+file contents:    first bytes followed exactly by second bytes</pre>
+  <p>Do not involve the keydir, decoding, file rotation, sync, or reopening yet. This test is a narrow statement that append returns the physical range it just occupied.</p>
+
+  <h2>Your design decision</h2>
+  <p>Reply with the three concrete field types you choose. Then answer one question: if the second append returns offset 24 but the file has only 24 bytes afterward, what invariant did the data-file layer violate?</p>
+  <p class="small">After your answer, I will provide the mechanical test scaffold if you want it. You will implement the data-file production code yourself.</p>
+</main>
+</body>
+</html>

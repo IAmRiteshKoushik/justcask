@@ -22,6 +22,8 @@ crc32 | timestamp | key length | value length | key | value
 
 - A short read at the physical EOF is a crash tail. The partial record never enters the keydir.
 - A checksum mismatch after a complete record read is corruption. Opening returns an error with the affected file and byte offset. It does not discard, truncate, compact, or otherwise modify data.
+- A store publishes a keydir location only after the entire encoded record is successfully appended to the active data file and append returns that location. Power-loss durability is a separate sync-policy decision.
+- A data-file location contains a `uint32` file ID, `int64` starting byte offset, and `uint32` full encoded record size. A successful location denotes a byte range that already exists in the file.
 
 ## Deliberately deferred
 

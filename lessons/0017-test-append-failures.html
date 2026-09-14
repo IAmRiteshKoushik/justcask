@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 17: test append failures</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0017 · 25 minutes</p>
+  <h1>Test append failures</h1>
+  <p class="lede">Your happy-path append test proves where bytes go. Now prove that a failed append cannot hand the future keydir a location that looks valid.</p>
+
+  <h2>Introduce one private file contract</h2>
+  <p><code>DataFile</code> calls only three methods on its underlying file: <code>Stat</code>, <code>Write</code>, and <code>Close</code>. Replace the private <code>*os.File</code> field with a private interface containing exactly those methods. Keep <code>Open</code> unchanged in spirit: it opens a real <code>*os.File</code>, which satisfies the interface.</p>
+  <p>This is dependency injection in its smallest useful form. The production path remains an OS file. The test gets a fake file whose methods return the failure you want to study.</p>
+
+  <h2>The two tests to add</h2>
+  <table>
+    <thead><tr><th>Fake behavior</th><th>Required result</th></tr></thead>
+    <tbody>
+      <tr><td><code>Stat</code> returns a sentinel error.</td><td><code>Append</code> returns the zero <code>Location</code>, preserves that error for <code>errors.Is</code>, and does not call <code>Write</code>.</td></tr>
+      <tr><td><code>Stat</code> reports an offset. <code>Write</code> returns <code>len(data)-1, io.ErrShortWrite</code>.</td><td><code>Append</code> returns the zero <code>Location</code> and preserves <code>io.ErrShortWrite</code> for <code>errors.Is</code>.</td></tr>
+    </tbody>
+  </table>
+  <p>The second fake follows the <code>io.Writer</code> contract. It records partial progress and a non-nil error. Your existing error path should reject it without a special short-write branch.</p>
+
+  <h2>One uncomfortable fact</h2>
+  <p>A failed partial write can leave bytes at the end of the real file. Returning a zero location prevents an incorrect keydir update, but it does not erase those bytes. Do not try to solve that policy in this lesson. The next one will decide whether the active file becomes unusable after a failed write or whether the store can safely repair it.</p>
+
+  <h2>Your task</h2>
+  <ol>
+    <li>Make the private dependency refactor. Do not change the exported API.</li>
+    <li>Add the two focused tests above. Use <code>errors.Is</code>, not error-string comparison.</li>
+    <li>Run <code>mise exec -- go test ./internal/datafile</code>.</li>
+  </ol>
+  <p class="small">If you want the fake and test scaffold, ask for it. Keep the production code yours.</p>
+</main>
+</body>
+</html>
