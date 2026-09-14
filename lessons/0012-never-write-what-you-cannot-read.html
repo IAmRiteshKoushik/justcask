@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 12: never write what you cannot read</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0012 · 20 minutes</p>
+  <h1>Never write what you cannot read</h1>
+  <p class="lede">The decoder now rejects oversized records. The encoder must apply the same policy or Justcask can manufacture durable bytes that it refuses to reopen.</p>
+
+  <h2>The symmetry invariant</h2>
+  <pre>if Encode(record) succeeds,
+then Decode(encoded bytes) must be allowed to succeed.</pre>
+  <p>This is stronger than “both functions have limits.” It says the writer cannot produce an artifact that violates the reader’s contract.</p>
+
+  <h2>Two tests to add</h2>
+  <ol>
+    <li>Create a record with a key of <code>maxKeyLength + 1</code> bytes and a small or empty value. Expect <code>ErrRecordTooLarge</code>.</li>
+    <li>Create a record with a value of <code>maxValueLength + 1</code> bytes and a small or empty key. Expect <code>ErrRecordTooLarge</code>.</li>
+  </ol>
+  <p>In both tests, assert that <code>Encode</code> returns no data. It must refuse before allocating the record buffer. Using a 16 MiB plus one-byte test value is acceptable here: it tests the exact policy boundary and does not write it to disk.</p>
+
+  <h2>Expected initial failure</h2>
+  <p>The current encoder will allocate a byte slice, return it, and return no error. Your tests should fail for that reason. Do not modify <code>Encode</code> until you have seen the failing result.</p>
+
+  <h2>Your task</h2>
+  <ol>
+    <li>Add the two encode-limit tests using <code>errors.Is</code>.</li>
+    <li>Assert a nil byte slice on error.</li>
+    <li>Run <code>go test ./internal/record</code> and send the failure output.</li>
+  </ol>
+  <p class="small">The next implementation change will be short: apply the same length check at the start of <code>Encode</code>, before calculating a total size or allocating a slice.</p>
+</main>
+</body>
+</html>

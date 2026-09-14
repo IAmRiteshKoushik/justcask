@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 10: reject impossible record sizes</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0010 · 20 minutes</p>
+  <h1>Reject impossible record sizes</h1>
+  <p class="lede">A record length field can represent 4 GiB. That does not mean your CLI should accept a 4 GiB key or value. Disk bytes are untrusted input, and the decoder needs an operational limit before the file layer starts reading declared bodies.</p>
+
+  <h2>Format ceiling versus implementation limit</h2>
+  <table>
+    <thead><tr><th>Question</th><th>Answer</th></tr></thead>
+    <tbody>
+      <tr><td>What can the v1 field represent?</td><td>An unsigned 32-bit length, up to 4 GiB minus 1 byte.</td></tr>
+      <tr><td>What should Justcask accept today?</td><td>A deliberately smaller bound, tested and documented as an implementation policy.</td></tr>
+      <tr><td>When must decode enforce it?</td><td>Immediately after reading the length fields, before computing a body read, allocating, slicing, or verifying a checksum.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Choose a starting policy</h2>
+  <p>For this CLI, I recommend a maximum key size of 4 KiB and a maximum value size of 16 MiB. A 4 KiB key is generous for a key-value store. A 16 MiB value is enough for a serious demo while keeping accidental memory and disk use bounded. These are implementation limits, not a change to the v1 byte layout.</p>
+  <p>You may choose different values if you can state the workload that needs them.</p>
+
+  <h2>Test the check before the body exists</h2>
+  <p>Add a stable <code>ErrRecordTooLarge</code>. Then write two tests that begin with a 20-byte header and declare a key or value one byte over its chosen maximum. The body does not need to be present and the CRC does not need to match. The decoder should return <code>ErrRecordTooLarge</code> first, because the declared size itself is unacceptable.</p>
+  <p>This test order matters. If decode tries to read or allocate the declared body before checking the limit, a corrupt header controls your resource use.</p>
+
+  <h2>Your task</h2>
+  <ol>
+    <li>Reply with your maximum key size and value size. You can accept 4 KiB and 16 MiB or propose your own.</li>
+    <li>Explain in one sentence why this must be a decoder check rather than only a CLI-input check.</li>
+    <li>Do not write the tests yet. After your decision, we will add the error and tests together.</li>
+  </ol>
+  <p class="small">The v1 field format is unchanged. When we accept a policy, it goes into <a href="../DECISIONS.md">DECISIONS.md</a> as a safety limit.</p>
+</main>
+</body>
+</html>

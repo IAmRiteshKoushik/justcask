@@ -16,6 +16,7 @@ crc32 | timestamp | key length | value length | key | value
 - `key length` and `value length` are unsigned 4-byte fields.
 - The checksum covers `timestamp | key length | value length | key | value`, never the checksum field itself.
 - The fixed header occupies 20 bytes.
+- The implementation accepts keys up to 4 KiB and values up to 16 MiB. These are decoder-enforced safety limits, not changes to the on-disk `uint32` field widths.
 
 ## Recovery v1
 
@@ -24,5 +25,4 @@ crc32 | timestamp | key length | value length | key | value
 
 ## Deliberately deferred
 
-- Maximum accepted key and value lengths, which must be lower than the on-disk `uint32` ceiling.
 - The explicit operation encoding for tombstones. Empty values will remain valid values.

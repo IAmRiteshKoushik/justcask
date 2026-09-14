@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 9: test every crash cut</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0009 · 20 minutes</p>
+  <h1>Test every crash cut</h1>
+  <p class="lede">A process can stop after any byte reaches the active file. One hand-picked truncation test proves little. A loop over every shorter prefix proves the decoder has one consistent crash-tail rule.</p>
+
+  <h2>The property</h2>
+  <p>Given one known-valid record of length 24, every prefix with a length from 0 through 23 must return <code>ErrIncompleteRecord</code> and a zero <code>Record</code>. The complete 24-byte input must still decode successfully.</p>
+  <pre>valid bytes:        [ b0 b1 b2 ... b23 ]
+valid crash tails:  [] [b0] [b0 b1] ... [b0 ... b22]
+expected result:    ErrIncompleteRecord for every crash tail</pre>
+
+  <h2>Keep the fixture honest</h2>
+  <p>Add a small test helper that returns a new copy of the literal 24-byte v1 vector. It must not call <code>Encode</code>. A shared fixed fixture removes repeated setup while keeping the test independent from production code.</p>
+  <p>In Go 1.27, use integer range syntax to visit every prefix length. The loop has a natural endpoint: iterate through <code>len(valid)</code>, excluding the complete length.</p>
+
+  <h2>What the loop must assert</h2>
+  <ol>
+    <li>Slice the valid vector to the current prefix length.</li>
+    <li>Call <code>Decode</code>.</li>
+    <li>Assert <code>errors.Is(err, ErrIncompleteRecord)</code>.</li>
+    <li>Assert the returned record is zero.</li>
+    <li>Include the prefix length in any failure message, so the failing crash point is immediately visible.</li>
+  </ol>
+
+  <div class="card">
+    <p><strong>Why this is more than coverage.</strong> The test does not care whether a cut lands in the checksum, timestamp, length fields, key, or value. It states the storage invariant that all those physical crash points share: incomplete bytes never become a decoded record.</p>
+  </div>
+
+  <h2>Your task</h2>
+  <ol>
+    <li>Add the literal-vector helper and the exhaustive-prefix test.</li>
+    <li>Run <code>go test ./internal/record</code>.</li>
+    <li>Tell me how many truncated prefixes your test exercises and why the complete record is excluded from the loop.</li>
+  </ol>
+  <p class="small">Do not change production code for this lesson. If the test fails, its prefix length points to the boundary rule that needs attention.</p>
+</main>
+</body>
+</html>

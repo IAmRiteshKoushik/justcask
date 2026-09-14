@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 13: separate records from files</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0013 · 20 minutes</p>
+  <h1>Separate records from files</h1>
+  <p class="lede">The codec knows what valid bytes mean. The data-file layer knows where those bytes live. Keeping those jobs separate is what makes recovery and compaction manageable later.</p>
+
+  <h2>The next component</h2>
+  <p>Create an internal data-file package in the next implementation step. It owns one open append-only file. It does not parse a key, maintain a keydir, implement a CLI command, or decide whether a record is a put or delete.</p>
+  <pre>record package     valid record ⇄ v1 bytes
+data-file package  encoded bytes ⇄ file offset and length
+future store       key ⇄ newest data-file location</pre>
+
+  <h2>The write invariant</h2>
+  <p>A future store must follow this order:</p>
+  <pre>encode record → append bytes successfully → publish keydir location</pre>
+  <p>Never publish first. A keydir entry pointing at bytes that failed to write is a successful read of data that never existed.</p>
+
+  <h2>What append needs to return</h2>
+  <p>The store will later need enough information to read the exact record or value again. At minimum, that is the file identity, the byte offset where the record starts, and the full encoded record size. Offset zero means the first record begins at the first byte of the data file, including its checksum.</p>
+
+  <div class="card">
+    <p><strong>Keep durability separate for one lesson.</strong> A successful operating-system write means the process handed bytes to the OS. It does not yet promise those bytes survive a power loss. We will add an explicit sync policy after basic append and reopen behavior are correct.</p>
+  </div>
+
+  <h2>Your design note</h2>
+  <p>Reply in prose, without code:</p>
+  <ol>
+    <li>Should the data-file append operation accept a <code>Record</code> or already encoded <code>[]byte</code>? Defend your choice using the package responsibilities above.</li>
+    <li>What three fields should the returned location contain, and what does each mean?</li>
+    <li>State the one-sentence rule for when a future keydir may be updated.</li>
+  </ol>
+  <p class="small">After you make those decisions, we will specify a minimal append test and you will implement the data-file layer without turning it into the database too early.</p>
+</main>
+</body>
+</html>

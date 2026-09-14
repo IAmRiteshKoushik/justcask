@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 11: test oversized headers first</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0011 · 20 minutes</p>
+  <h1>Test oversized headers first</h1>
+  <p class="lede">The length fields are untrusted until decode accepts them. Test the refusal at the 20-byte header boundary, before a declared body exists.</p>
+
+  <h2>The new category</h2>
+  <p>Add <code>ErrRecordTooLarge</code> as a stable error in <code>err.go</code>. It means the header declares a key or value above Justcask’s accepted limit. It is neither a normal crash tail nor a checksum mismatch.</p>
+
+  <h2>Two compact tests</h2>
+  <p>Add one test for an oversized key and one for an oversized value. Each test uses only a 20-byte header:</p>
+  <ol>
+    <li>Allocate a byte slice exactly the fixed header length.</li>
+    <li>Write a declared key or value length of one byte above its chosen limit at the correct big-endian offset.</li>
+    <li>Call <code>Decode</code>.</li>
+    <li>Assert a zero record and <code>errors.Is(err, ErrRecordTooLarge)</code>.</li>
+  </ol>
+  <p>Do not calculate a CRC or attach a key/value body. The intended rule is that the decoder rejects an unacceptable declaration before checking whether the body exists or whether its checksum matches.</p>
+
+  <h2>Expected initial failure</h2>
+  <p>Your current decoder will classify these headers as incomplete because their declared bodies are absent. That is the point of the test. The next implementation step will insert the size checks immediately after it reads both length fields and before it calculates the declared record size.</p>
+
+  <h2>Your task</h2>
+  <ol>
+    <li>Add <code>ErrRecordTooLarge</code>.</li>
+    <li>Add the two header-only tests, using the 4 KiB and 16 MiB decisions.</li>
+    <li>Run <code>go test ./internal/record</code> and send the failing output.</li>
+  </ol>
+  <p class="small">Once they fail for the intended reason, we will make the decoder reject them. After that, we will stop the encoder from producing records it cannot later read.</p>
+</main>
+</body>
+</html>
