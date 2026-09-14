@@ -91,7 +91,7 @@ func TestDecodeErrIncompleteRecord(t *testing.T) {
 	data = append(data, value...)
 
 	record, err := Decode(data)
-	if reflect.ValueOf(record).IsZero() {
+	if !reflect.ValueOf(record).IsZero() {
 		t.Fatalf("Decoder is not returning an empty instance of a record")
 	}
 
@@ -118,7 +118,7 @@ func TestDecodeErrChecksumMismatch(t *testing.T) {
 	data = append(data, value...)
 
 	record, err := Decode(data)
-	if reflect.ValueOf(record).IsZero() {
+	if !reflect.ValueOf(record).IsZero() {
 		t.Fatalf("Decoder is not returning an empty instance of a record")
 	}
 
