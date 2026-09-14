@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 5: write the first failing codec test</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0005 · 25 minutes</p>
+  <h1>Write the first failing codec test</h1>
+  <p class="lede">The codec turns an in-memory record into its durable bytes and back. It should know nothing about files, keydirs, or the CLI.</p>
+
+  <h2>Package boundary</h2>
+  <p>Create <code>internal/record</code>. The name is intentional: this package owns the on-disk record format. A later storage package will open files and call it; the CLI will not import it directly.</p>
+  <pre>internal/record/
+  record.go       // Record type and Encode/Decode
+  record_test.go  // exact byte vectors and invalid inputs</pre>
+  <p>Start with only this model and these operations:</p>
+  <pre>type Record struct {
+    Timestamp int64
+    Key       []byte
+    Value     []byte
+}
+
+func Encode(record Record) ([]byte, error)
+func Decode(data []byte) (Record, error)</pre>
+  <p>Do not add file I/O, options, concurrency, a database handle, or delete support. Those would obscure the format work.</p>
+
+  <h2>First test, before implementation</h2>
+  <p>In <code>record_test.go</code>, write one test named <code>TestEncodeProducesV1Bytes</code>. Construct the record from the <a href="../reference/0002-codec-test-vectors.html">worked vector</a> and compare <code>Encode</code>'s result against a literal 24-byte expected slice.</p>
+  <p>Make failure output useful. On a mismatch, print both byte sequences in hexadecimal. Avoid constructing the expected sequence with <code>Encode</code>, <code>binary.BigEndian</code>, or <code>crc32</code>; that would repeat the production logic inside the assertion.</p>
+
+  <div class="card">
+    <p><strong>Prediction.</strong> Your first test should not compile until you define the package API. After it compiles, it should fail because <code>Encode</code> has not written the record yet. Both failures are progress: each names the next smallest piece of work.</p>
+  </div>
+
+  <h2>What to send next</h2>
+  <ol>
+    <li>Create the directory and the two Go files.</li>
+    <li>Write the <code>Record</code> type, the <code>Encode</code> signature, and the one test. A temporary <code>panic("TODO")</code> body is fine.</li>
+    <li>Run <code>mise exec -- go test ./internal/record</code>. If your local setup reports a different toolchain command, send the exact error rather than working around it blindly.</li>
+    <li>Send me the test file or the compiler and test output. I will review only that first step, then give you the next implementation prompt.</li>
+  </ol>
+
+  <p class="small">Read <a href="../DECISIONS.md">DECISIONS.md</a> before coding. Your format must match it exactly.</p>
+</main>
+</body>
+</html>

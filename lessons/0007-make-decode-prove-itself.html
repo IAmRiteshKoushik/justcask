@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 7: make decode prove itself</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0007 · 15 minutes</p>
+  <h1>Make decode prove itself</h1>
+  <p class="lede">Decode must trust the bytes on disk, not the encoder that happens to be beside it. Feed it the literal v1 vector and ask what record it finds.</p>
+
+  <h2>The test to add</h2>
+  <p>Create <code>TestDecodeReadsV1Bytes</code> in <code>record_test.go</code>. Its input is the literal 24-byte vector from the <a href="../reference/0002-codec-test-vectors.html">codec reference</a>:</p>
+  <pre>5d6ebe2201020304050607080000000200000002676f4442</pre>
+  <p>Do not call <code>Encode</code> in this test. The assertions should compare the decoded record against:</p>
+  <pre>Timestamp: int64(0x0102030405060708)
+Key:       []byte("go")
+Value:     []byte("DB")</pre>
+  <p>Compare keys and values with <code>bytes.Equal</code>. Compare the timestamp directly. If <code>Decode</code> returns an error, fail the test with the error.</p>
+
+  <h2>Read order is safety order</h2>
+  <p>When you implement <code>Decode</code> later, this order will matter:</p>
+  <ol>
+    <li>Check that at least 20 bytes exist before slicing the header.</li>
+    <li>Read the stored checksum, timestamp, key length, and value length.</li>
+    <li>Calculate the total length from the declared lengths and check that it is present before slicing key and value.</li>
+    <li>Verify the CRC over the protected suffix.</li>
+    <li>Return a record whose key and value are exactly the bytes described by the header.</li>
+  </ol>
+  <p>Do not implement this yet. The new test should first reach the current TODO panic. That tells us the test has actually called the decoder.</p>
+
+  <h2>Your task</h2>
+  <ol>
+    <li>Add the decode test using a literal byte slice.</li>
+    <li>Run <code>go test ./internal/record</code>.</li>
+    <li>Send the result. It should show the encoder test passing and the decoder test stopping at <code>Decode</code>'s TODO.</li>
+  </ol>
+
+  <p class="small">Later tests will cover short input and bad checksums. Keep this one narrow: correct bytes decode to the correct record.</p>
+</main>
+</body>
+</html>

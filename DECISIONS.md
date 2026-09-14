@@ -11,8 +11,8 @@ crc32 | timestamp | key length | value length | key | value
 ```
 
 - All fixed-width integer fields use big-endian encoding.
-- `crc32` occupies 4 bytes and uses CRC-32.
-- `timestamp` occupies 8 bytes. Its unit and signedness are intentionally pending before the encoder is written.
+- `crc32` occupies 4 bytes and uses CRC-32/IEEE.
+- `timestamp` is an 8-byte signed `int64` Unix-nanosecond count.
 - `key length` and `value length` are unsigned 4-byte fields.
 - The checksum covers `timestamp | key length | value length | key | value`, never the checksum field itself.
 - The fixed header occupies 20 bytes.
@@ -24,6 +24,5 @@ crc32 | timestamp | key length | value length | key | value
 
 ## Deliberately deferred
 
-- Timestamp unit and signedness.
 - Maximum accepted key and value lengths, which must be lower than the on-disk `uint32` ceiling.
 - The explicit operation encoding for tombstones. Empty values will remain valid values.

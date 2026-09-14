@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Codec test vectors</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask reference 0002</p>
+  <h1>Codec test vectors</h1>
+  <p>Use these as examples of the kind of test you will write. Do not make the production encoder calculate the expected bytes for the test.</p>
+
+  <h2>One deterministic put record</h2>
+  <p>The record has timestamp <code>0x0102030405060708</code>, key <code>go</code>, and value <code>DB</code>.</p>
+  <pre>field             hex bytes
+crc32/IEEE        5d 6e be 22
+timestamp          01 02 03 04 05 06 07 08
+key length         00 00 00 02
+value length       00 00 00 02
+key                67 6f
+value              44 42
+
+whole record       5d6ebe2201020304050607080000000200000002676f4442</pre>
+  <p>The CRC is calculated over every byte after <code>5d 6e be 22</code>. The expected bytes use big-endian integers. A decoder should return the same timestamp, key, and value from this literal vector.</p>
+
+  <h2>Three decoder cases</h2>
+  <ol>
+    <li><strong>Known valid vector.</strong> Give the full 24-byte literal above to the decoder. Expect one decoded record with the stated timestamp, key, and value.</li>
+    <li><strong>Truncated tail.</strong> Remove the last byte, making the value one byte short. Expect an incomplete-record result. A recovery scanner may ignore this only when it is at physical EOF.</li>
+    <li><strong>Checksum mismatch.</strong> Change the final byte from <code>42</code> to <code>43</code> but leave the stored checksum unchanged. Expect a checksum-mismatch error, not a decoded record.</li>
+  </ol>
+  <p class="small">Return to <a href="../lessons/0004-test-the-bytes-not-the-idea.html">lesson 0004</a>. The exact record format lives in <a href="../DECISIONS.md">DECISIONS.md</a>.</p>
+</main>
+</body>
+</html>

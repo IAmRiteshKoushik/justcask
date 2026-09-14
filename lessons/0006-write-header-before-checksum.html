@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 6: write the header before the checksum</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0006 · 20 minutes</p>
+  <h1>Write the header before the checksum</h1>
+  <p class="lede">The first four bytes are the checksum, but they should be the last bytes you fill. Everything it protects has to exist first.</p>
+
+  <h2>Offset map</h2>
+  <pre>offset  0..3   checksum, u32 big-endian
+offset  4..11  timestamp, int64 encoded as its u64 bit pattern
+offset 12..15  key length, u32 big-endian
+offset 16..19  value length, u32 big-endian
+offset 20..    key bytes, then value bytes</pre>
+  <p>The total allocation is <code>20 + len(key) + len(value)</code>. Convert the signed timestamp to <code>uint64</code> only for serialization. That preserves its two's-complement bit pattern, including timestamps before the Unix epoch.</p>
+
+  <h2>Implementation sequence</h2>
+  <ol>
+    <li>Replace the TODO in <code>Encode</code> with a single byte slice of the exact total size.</li>
+    <li>Use <code>binary.BigEndian.PutUint64</code> and <code>PutUint32</code> to fill offsets 4 through 19.</li>
+    <li>Copy the key to offset 20, then copy the value immediately after the key.</li>
+    <li>Calculate <code>crc32.ChecksumIEEE</code> over <code>encoded[4:]</code>.</li>
+    <li>Write that checksum into <code>encoded[0:4]</code> with <code>PutUint32</code>, then return the bytes.</li>
+  </ol>
+  <p>For this first pass, return a nil error for the small test record. We will add explicit key/value size limits and error tests directly after the happy path works.</p>
+
+  <div class="card">
+    <p><strong>Stop and predict.</strong> If you calculate the CRC over the full slice before writing its checksum field, it happens to work only because a newly allocated Go slice is zeroed. The format's real rule is stronger: checksum every byte after offset 3. Encode that rule in the slice range.</p>
+  </div>
+
+  <h2>Your task</h2>
+  <p>Implement only the five steps above in <code>Encode</code>. Do not touch <code>Decode</code>. Run <code>go test ./internal/record</code> and send the result. If the exact-byte test passes, tell me in one sentence why calculating the checksum last matters.</p>
+
+  <p class="small">Use Go's <a href="https://pkg.go.dev/encoding/binary#ByteOrder">`binary.BigEndian`</a> and <a href="https://pkg.go.dev/hash/crc32#ChecksumIEEE">`crc32.ChecksumIEEE`</a>. The bytes must still match <a href="../DECISIONS.md">DECISIONS.md</a>.</p>
+</main>
+</body>
+</html>

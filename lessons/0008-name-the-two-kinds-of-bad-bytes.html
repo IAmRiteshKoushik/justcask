@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 8: name the two kinds of bad bytes</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0008 · 20 minutes</p>
+  <h1>Name the two kinds of bad bytes</h1>
+  <p class="lede">“Decode failed” is not enough information for recovery. An incomplete final append is normal after a crash. A complete record whose checksum fails is corruption. The caller needs to tell them apart.</p>
+
+  <h2>Two errors, two later policies</h2>
+  <table>
+    <thead><tr><th>Decoder sees</th><th>Decoder returns</th><th>Later file scanner does</th></tr></thead>
+    <tbody>
+      <tr><td>Fewer than 20 header bytes, or fewer bytes than the declared record length</td><td><code>ErrIncompleteRecord</code></td><td>Ignores it only if it is at physical EOF of the active file</td></tr>
+      <tr><td>A full declared record but CRC-32/IEEE differs</td><td><code>ErrChecksumMismatch</code></td><td>Stops opening and reports corruption. It never silently discards the record.</td></tr>
+    </tbody>
+  </table>
+  <p>These should be stable package errors. Callers should use <code>errors.Is</code>, not compare error strings. Contextual details can wrap the stable error later.</p>
+
+  <h2>Write tests before changing decode</h2>
+  <ol>
+    <li>Add a test that starts with the valid 24-byte vector and removes its final byte. It should expect <code>ErrIncompleteRecord</code>.</li>
+    <li>Add a test that copies the valid vector, changes only its final value byte, and keeps the stored checksum unchanged. It should expect <code>ErrChecksumMismatch</code>.</li>
+  </ol>
+  <p>Both tests should use <code>errors.Is</code>. They should assert that no valid record is returned. Keep them separate. A test that truncates a record and also corrupts its checksum cannot tell you which check ran first.</p>
+
+  <h2>Your task</h2>
+  <ol>
+    <li>Declare the two stable errors in the record package. Do not change <code>Decode</code> yet.</li>
+    <li>Add the two tests above and run <code>go test ./internal/record</code>.</li>
+    <li>Send the failure output. It should tell us which generic return paths must start returning or wrapping the stable errors.</li>
+  </ol>
+  <p class="small">This is the bridge from a byte parser to crash recovery. The recovery scanner arrives only after these distinctions are locked into tests.</p>
+</main>
+</body>
+</html>
