@@ -2,6 +2,8 @@ package datafile
 
 import (
 	"bytes"
+	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -56,5 +58,63 @@ func TestAppendWritesContiguousBytesAndReturnsLocations(t *testing.T) {
 	wantBytes := append(append([]byte{}, first...), second...)
 	if !bytes.Equal(gotBytes, wantBytes) {
 		t.Fatalf("fiel bytes = %x, want %x", gotBytes, wantBytes)
+	}
+}
+
+// Mocking is used here because we need to give the test control over failure
+// that are unreliable to trigger with a real disk-file. It is easy to make
+// Stat() or Write() fail or simulate it's failure without actually filling up
+// the disk.
+func TestAppendReturnsZeroLocationWhenStatFails(t *testing.T) {
+	statErr := errors.New("stat failed")
+	handle := &mockFile{statErr: statErr}
+
+	file := &DataFile{
+		FileID: 7,
+		file:   handle,
+	}
+
+	location, err := file.Append([]byte("record"))
+	if location != (Location{}) {
+		t.Fatalf("Append(location) = %+v, want zero location", location)
+	}
+	if !errors.Is(err, statErr) {
+		t.Fatalf("Append() error = %v, want errors.Is(err, statErr)", err)
+	}
+	if handle.writeCalls != 0 {
+		t.Fatalf("Write() calls = %d, want 0", handle.writeCalls)
+	}
+}
+
+func TestAppendReturnsZeroLocationWhenWriteIsShort(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "fixture")
+	if err := os.WriteFile(path, []byte("existing"), 0o600); err != nil {
+		t.Fatalf("WriteFile() error = %v", err)
+	}
+	info, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("Stat() error = %v", err)
+	}
+
+	data := []byte("record")
+	handle := &mockFile{
+		info:     info,
+		writeN:   len(data) - 1,
+		writeErr: io.ErrShortWrite,
+	}
+	file := &DataFile{
+		FileID: 7,
+		file:   handle,
+	}
+
+	location, err := file.Append(data)
+	if location != (Location{}) {
+		t.Fatalf("Append() location = %+v, want zero Location", location)
+	}
+	if !errors.Is(err, io.ErrShortWrite) {
+		t.Fatalf("Append() error = %v, want errors.Is(err, io.ErrShortWrite)", err)
+	}
+	if handle.writeCalls != 1 {
+		t.Fatalf("Write() calls = %d, want 1", handle.writeCalls)
 	}
 }

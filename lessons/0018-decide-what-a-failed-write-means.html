@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 18: decide what a failed write means</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0018 · 20 minutes</p>
+  <h1>Decide what a failed write means</h1>
+  <p class="lede">Lesson 17 stopped a partial record from entering the keydir. The physical file may still end with those partial bytes. Decide what the process does next.</p>
+
+  <h2>The state we must not ignore</h2>
+  <pre><code>valid record A | valid record B | partial record C | EOF</code></pre>
+  <p><code>Append</code> has returned an error for record C, so the keydir has no location for it. That is good. But appending record D immediately afterward creates this:</p>
+  <pre><code>valid record A | valid record B | partial record C | valid record D | EOF</code></pre>
+  <p>A recovery scan cannot reliably tell where C ends and D begins. A short record is only a harmless crash tail when it is at physical EOF.</p>
+
+  <h2>Choose a policy</h2>
+  <table>
+    <thead><tr><th>Policy</th><th>Rule</th><th>What you must prove</th></tr></thead>
+    <tbody>
+      <tr><td>Poison the active file</td><td>After any failed write, refuse every later append on this <code>DataFile</code>.</td><td>No later record can follow an unknown tail. A restart recovery scan ignores the tail at EOF.</td></tr>
+      <tr><td>Repair the active file</td><td>After a failed write, truncate back to the offset captured before the write. Only then permit a later append.</td><td>Truncation reaches exactly the pre-write length, succeeds before appending resumes, and a failed repair also poisons the file.</td></tr>
+    </tbody>
+  </table>
+  <p>For this first version, I recommend poisoning the active file. It has a smaller failure surface and makes the invariant easy to test. Repair is a sensible later extension, but it adds another write-like operation whose own failure needs a rule.</p>
+
+  <h2>Write your decision before code</h2>
+  <ol>
+    <li>Choose one policy and add it to <code>DECISIONS.md</code>.</li>
+    <li>State the new invariant in one sentence. Include what a later <code>Append</code> returns after a prior failed write.</li>
+    <li>List the first test you would write. For the poison policy, it should force one write failure, call <code>Append</code> again, and prove the fake received no second <code>Write</code> call.</li>
+  </ol>
+  <p class="small">Do not add repair logic yet. The choice comes first. Bring back your one-sentence invariant and test name, then implement only the chosen policy.</p>
+</main>
+</body>
+</html>

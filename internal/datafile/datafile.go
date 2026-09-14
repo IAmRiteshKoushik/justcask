@@ -11,9 +11,15 @@ type Location struct {
 	Size   uint32 // An encoded record is a little more than 4 KB + 16MB
 }
 
+type dataFileHandle interface {
+	Stat() (os.FileInfo, error)
+	Write([]byte) (int, error)
+	Close() error
+}
+
 type DataFile struct {
 	FileID uint32
-	file   *os.File
+	file   dataFileHandle // os.File implements the custom interface
 }
 
 func Open(path string, fileID uint32) (*DataFile, error) {
