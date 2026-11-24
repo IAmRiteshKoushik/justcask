@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lesson 23: read one record from a stream</title>
+  <link rel="stylesheet" href="../assets/course.css">
+</head>
+<body>
+<main>
+  <p class="eyebrow">Justcask lesson 0023 · 20 minutes</p>
+  <h1>Read one record from a stream</h1>
+  <p class="lede">Put frame boundaries beside the record format. Recovery should ask the record package for one validated record, not duplicate header parsing in the data-file layer.</p>
+
+  <h2>The recommended API</h2>
+  <pre><code>func ReadFrom(r io.Reader) (Record, int, error)</code></pre>
+  <p>The returned integer is the number of bytes consumed for a successful record. The recovery scanner uses it to build a location and advance its offset. It does not need the header width or the key and value offsets.</p>
+
+  <h2>Implement it in two reads</h2>
+  <ol>
+    <li>Use <code>io.ReadFull</code> to read the fixed 20-byte header.</li>
+    <li>From that header, validate the key and value lengths before allocating anything.</li>
+    <li>Allocate one buffer for the full declared record. Copy the header into it.</li>
+    <li>Use <code>io.ReadFull</code> again for the remaining key and value bytes.</li>
+    <li>Pass the full buffer to the existing <code>Decode</code>. It remains the checksum authority.</li>
+  </ol>
+
+  <h2>Let <code>io.ReadFull</code> preserve the physical boundary</h2>
+  <table>
+    <thead><tr><th>Input begins with</th><th><code>ReadFrom</code> returns</th><th>Why recovery cares</th></tr></thead>
+    <tbody>
+      <tr><td>No bytes</td><td><code>io.EOF</code></td><td>There is no next record.</td></tr>
+      <tr><td>One or more bytes, then EOF before the full record</td><td><code>io.ErrUnexpectedEOF</code></td><td>The final record is a crash tail.</td></tr>
+      <tr><td>A complete record with bad checksum</td><td><code>record.ErrChecksumMismatch</code></td><td>The bytes are complete and corrupted.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Write these tests first</h2>
+  <ol>
+    <li>An empty <code>bytes.Reader</code> returns <code>io.EOF</code>.</li>
+    <li>A valid encoded record returns the original record and its exact encoded byte count.</li>
+    <li>Every non-empty truncated prefix of a valid encoded record returns <code>io.ErrUnexpectedEOF</code>.</li>
+    <li>A complete record with one flipped data byte returns <code>ErrChecksumMismatch</code>.</li>
+  </ol>
+  <p>Do not build the data-file scanner yet. Make this one-record reader reliable first. It turns the restart problem into a simple offset loop.</p>
+
+  <h2>Retrieval check</h2>
+  <p>Why should <code>ReadFrom</code> return <code>io.ErrUnexpectedEOF</code> for a partial record instead of converting it to <code>ErrIncompleteRecord</code>? Answer before coding.</p>
+
+  <p>Primary source: <a href="https://pkg.go.dev/io#ReadFull">Go's <code>io.ReadFull</code> documentation</a>. It gives the empty-input and partial-input cases distinct errors.</p>
+  <p class="small">Ask for test scaffolding if you want it. Keep the record-reader implementation yours.</p>
+</main>
+</body>
+</html>
